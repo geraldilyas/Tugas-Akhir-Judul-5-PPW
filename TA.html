@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Kalkulator PEMDAS LENGKAP - Memory Fixed</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color:#f7f7f7; color:#333; display:flex; justify-content:center; align-items:flex-start; min-height:100vh; margin:0; padding:20px; box-sizing:border-box;}
+        .main-container{display:flex;gap:20px;max-width:1000px;width:100%;}
+        .info-panel{flex:1;max-width:350px;background:#fff;border-radius:12px;padding:15px;box-shadow:0 4px 12px rgba(0,0,0,0.08);height:fit-content;order:2;}
+        .panel-title{color:#444;border-bottom:1px solid #eee;padding-bottom:8px;margin-top:10px;margin-bottom:10px;font-size:1.1em;}
+        .history-container{max-height:300px;overflow-y:auto;padding-right:5px;margin-bottom:20px;list-style:none;padding-left:0;}
+        .history-item{background:#eef;padding:8px 10px;border-radius:6px;margin-bottom:5px;cursor:pointer;transition:background-color .2s;line-height:1.4;}
+        .history-item:hover{background:#ddeeff;}
+        .history-expression,.history-result{margin:0;text-align:right;word-wrap:break-word;}
+        .history-expression{font-size:.9em;color:#666;}
+        .history-result{font-size:1.1em;font-weight:700;color:#333;}
+        .history-empty{color:#999;text-align:center;font-style:italic;margin:20px 0;}
+        .memory-display{background:#eee;padding:10px;border-radius:6px;margin-bottom:10px;text-align:center;font-weight:700;color:#333;}
+        .memory-buttons{display:flex;gap:5px;}
+        .btn-mem{flex:1;padding:8px 0;font-size:.9em;border:none;border-radius:6px;background:#ddd;cursor:pointer;transition:background-color .2s;}
+        .btn-mem:hover{background:#ccc;}
+        .calculator-panel{flex:1;max-width:400px;background:#222;border-radius:15px;box-shadow:0 10px 30px rgba(0,0,0,.2);padding:20px;order:1;}
+        .display-container{padding:10px;margin-bottom:15px;text-align:right;overflow-x:auto;}
+        .display-expression{color:#999;font-size:1.2em;min-height:1.2em;}
+        .display-result{color:#fff;font-size:3em;font-weight:300;word-wrap:break-word;overflow-wrap:break-word;}
+        .buttons-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;}
+        .buttons-grid button{padding:20px 0;font-size:1.5em;border:none;border-radius:10px;cursor:pointer;transition:background-color .2s,transform .1s;user-select:none;}
+        .btn-number{background:#444;color:#fff;}
+        .btn-number:hover{background:#555;}
+        .btn-zero{grid-column:span 2;text-align:middle;padding-left:30px;}
+        .btn-operator{background:#ff9500;color:#fff;font-weight:700;}
+        .btn-operator:hover{background:#ffa520;}
+        .btn-clear{background:#a5a5a5;color:#000;}
+        .btn-clear:hover{background:#b5b5b5;}
+        .btn-equals{background:#1abc9c;color:#fff;font-weight:700;}
+        .btn-equals:hover{background:#2ecc71;}
+        .buttons-grid button:active,.buttons-grid button.active{transform:scale(.95);}
+        @media (max-width:768px){body{align-items:center}.main-container{flex-direction:column;align-items:center;padding:0}.calculator-panel{width:100%;max-width:none;margin-top:10px;order:1}.info-panel{width:100%;max-width:none;order:2}}
+    </style>
+</head>
+<body>
+    <div class="main-container">
+        <div class="info-panel">
+            <h3 class="panel-title">Riwayat (5 Terakhir)</h3>
+            <div id="history-container" class="history-container"><p class="history-empty">Riwayat kosong</p></div>
+            <h3 class="panel-title memory-title">Memory</h3>
+            <div id="memory-display" class="memory-display">M: 0</div>
+            <div class="memory-buttons">
+                <button id="mc" class="btn-mem">MC</button>
+                <button id="mr" class="btn-mem">MR</button>
+                <button id="m_plus" class="btn-mem">M+</button>
+                <button id="m_minus" class="btn-mem">M-</button>
+            </div>
+        </div>
+
+        <div class="calculator-panel">
+            <div class="display-container">
+                <div id="expression" class="display-expression"></div>
+                <div id="result" class="display-result">0</div>
+            </div>
+
+            <div class="buttons-grid">
+                <button id="clear_all" class="btn-clear">C</button>
+                <button id="clear_entry" class="btn-clear">CE</button>
+                <button id="divide" class="btn-operator">÷</button>
+                <button id="add" class="btn-operator">+</button>
+
+                <button class="btn-number" data-value="7">7</button>
+                <button class="btn-number" data-value="8">8</button>
+                <button class="btn-number" data-value="9">9</button>
+                <button id="multiply" class="btn-operator">×</button>
+
+                <button class="btn-number" data-value="4">4</button>
+                <button class="btn-number" data-value="5">5</button>
+                <button class="btn-number" data-value="6">6</button>
+                <button id="subtract" class="btn-operator">−</button>
+
+                <button class="btn-number" data-value="1">1</button>
+                <button class="btn-number" data-value="2">2</button>
+                <button class="btn-number" data-value="3">3</button>
+                
+
+                <button id="zero" class="btn-number btn-zero" data-value="0">0</button>
+                <button id="decimal" class="btn-number" data-value=".">.</button>
+                <button id="equals" class="btn-equals">=</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const displayExpression = document.getElementById('expression');
+        const displayResult = document.getElementById('result');
+        const historyContainer = document.getElementById('history-container');
+        const memoryDisplay = document.getElementById('memory-display');
+        const buttonsGrid = document.querySelector('.buttons-grid');
+        const memoryButtons = document.querySelector('.memory-buttons');
+
+        let currentExpression = '';
+        let currentResult = '0';
+        let history = [];
+        let memory = 0;
+        let justCalculated = false;
+
+        const precedence = { '+':1, '−':1, '×':2, '÷':2 };
+        const opMap = { '+':'+', '−':'-', '×':'*', '÷':'/' };
+
+        function evaluateExpression(infix){
+            if (!infix) return 0;
+            const tokens = infix.match(/(\d+\.?\d*|[\+\−\×\÷])/g) || [];
+            const out = [], ops = [];
+            for (const t of tokens){
+                if (!isNaN(parseFloat(t))) out.push(t);
+                else if (precedence[t]){
+                    while (ops.length && precedence[ops[ops.length-1]] >= precedence[t]) out.push(ops.pop());
+                    ops.push(t);
+                }
+            }
+            while (ops.length) out.push(ops.pop());
+            const stack = [];
+            for (const tok of out){
+                if (!isNaN(parseFloat(tok))) stack.push(parseFloat(tok));
+                else {
+                    if (stack.length < 2) return 'Syntax Error';
+                    const b = stack.pop(), a = stack.pop();
+                    const op = opMap[tok];
+                    if (op === '/' && b === 0) return 'Tidak dapat membagi dengan 0';
+                    let r;
+                    switch(op){ case '+': r = a+b; break; case '-': r = a-b; break; case '*': r = a*b; break; case '/': r = a/b; break; }
+                    stack.push(r);
+                }
+            }
+            if (stack.length === 1){
+                const v = stack[0];
+                if (Number.isFinite(v)) return parseFloat(v.toFixed(12));
+                return v;
+            }
+            return 'Syntax Error';
+        }
+
+        function updateDisplay(){
+            displayExpression.textContent = currentExpression.replace(/\*/g,'×').replace(/\//g,'÷').replace(/-/g,'−');
+            displayResult.textContent = String(currentResult);
+            updateMemoryDisplay();
+        }
+
+        function updateMemoryDisplay(){
+            const memText = Number.isFinite(memory) ? parseFloat(memory.toFixed(12)).toString() : String(memory);
+            memoryDisplay.textContent = `M: ${memText}`;
+        }
+
+        function runPreview(){
+            const lastChar = currentExpression.slice(-1);
+
+            if (!currentExpression){
+                currentResult = '0';
+                updateDisplay();
+                return;
+            }
+
+            if (precedence[lastChar]){
+                const nums = currentExpression.match(/\d+\.?\d*/g);
+                const lastNum = nums ? nums[nums.length - 1] : '';
+                currentResult = lastNum || currentExpression;
+                updateDisplay();
+                return;
+            }
+
+            const preview = evaluateExpression(currentExpression);
+            if (typeof preview === 'string'){
+                if (preview.includes('Tidak dapat membagi dengan 0'))
+                    currentResult = preview;
+                else
+                    currentResult = '0'; 
+            } else currentResult = preview.toString();
+
+            updateDisplay();
+        }
+
+
+        function resetState(fullClear=false){
+            currentExpression = '';
+            currentResult = '0';
+            justCalculated = false;
+            if (fullClear){ history = []; memory = 0; renderHistory(); }
+            updateDisplay();
+        }
+
+        function saveToHistory(expr, res){
+            if (history.length && history[0].expression === expr && history[0].result === res) return;
+            history.unshift({ expression: expr, result: res });
+            if (history.length > 5) history.pop();
+            renderHistory();
+        }
+
+        function renderHistory(){
+            historyContainer.innerHTML = '';
+            if (!history.length){ historyContainer.innerHTML = '<p class="history-empty">Riwayat kosong</p>'; return; }
+            history.forEach((it, idx) => {
+                const div = document.createElement('div');
+                div.className = 'history-item';
+                div.innerHTML = `<p class="history-expression">${it.expression.replace(/\*/g,'×').replace(/\//g,'÷').replace(/-/g,'−')}</p><p class="history-result">${it.result}</p>`;
+                div.addEventListener('click', ()=> { currentExpression = it.expression; currentResult = it.result; justCalculated = true; updateDisplay(); });
+                historyContainer.appendChild(div);
+            });
+        }
+
+        function handleNumber(value){
+            if (justCalculated){ currentExpression = value === '.' ? '0.' : value; justCalculated = false; }
+            else {
+                const parts = currentExpression.match(/(\d+\.?\d*|[\+\−\×\÷])/g) || [];
+                const last = parts.length ? parts[parts.length-1] : '';
+                if (value === '.'){
+                    if (precedence[last] || !currentExpression) currentExpression += '0.';
+                    else if (!last.includes('.')) currentExpression += '.';
+                } else {
+                    const m = currentExpression.match(/([\d\.]+)$/);
+                    if (m && m[1] === '0' && m[1].length === 1) currentExpression = currentExpression.slice(0,-1) + value;
+                    else currentExpression += value;
+                }
+            }
+            runPreview();
+        }
+
+        function handleOperator(value){
+            if (!currentExpression && value !== '−') return;
+            const last = currentExpression.slice(-1);
+            const isOp = precedence[last];
+            if (justCalculated){ currentExpression = currentResult + value; justCalculated = false; }
+            else if (isOp) currentExpression = currentExpression.slice(0,-1) + value;
+            else currentExpression += value;
+            runPreview();
+        }
+
+        function handleEquals(){
+            if (justCalculated || !currentExpression) return;
+            let exprToEval = currentExpression;
+            const last = currentExpression.slice(-1);
+            if (precedence[last]) exprToEval = currentExpression.slice(0,-1);
+            const res = evaluateExpression(exprToEval);
+            if (typeof res === 'string'){
+                currentResult = res;
+                saveToHistory(currentExpression, currentResult);
+                if (!res.includes('Tidak dapat membagi')) currentExpression = '';
+            } else {
+                currentResult = res.toString();
+                saveToHistory(currentExpression, currentResult);
+                currentExpression = currentResult;
+            }
+            justCalculated = true; updateDisplay();
+        }
+
+        function handleClearAll(){ resetState(false); }
+        function handleClearEntry(){ if (justCalculated) handleClearAll(); else { currentExpression = currentExpression.slice(0,-1); runPreview(); } }
+
+        function getMemoryOperand(){
+            if (justCalculated){
+                if (typeof currentResult === 'string' && currentResult.includes('Tidak dapat membagi')) return 0;
+                return parseFloat(currentResult) || 0;
+            }
+            if (currentExpression !== ''){
+                const val = evaluateExpression(currentExpression);
+                if (typeof val === 'string'){
+                    const parts = currentExpression.match(/(\d+\.?\d*)/g);
+                    return parts && parts.length ? parseFloat(parts[parts.length-1]) : 0;
+                }
+                return parseFloat(val) || 0;
+            }
+            return 0;
+        }
+
+        function handleMemory(op){
+            switch(op){
+                case 'MC': memory = 0; break;
+                case 'MR': {
+                    const memValue = Number.isFinite(memory) ? parseFloat(memory.toFixed(12)).toString() : String(memory);
+                    if (justCalculated){ currentExpression = memValue; justCalculated = false; }
+                    else {
+                        const parts = currentExpression.match(/(\d+\.?\d*|[\+\−\×\÷])/g) || [];
+                        const last = parts.length ? parts[parts.length-1] : '';
+                        if (!precedence[last] && last.length) currentExpression = currentExpression.slice(0,-last.length);
+                        currentExpression += memValue;
+                    }
+                    runPreview();
+                } break;
+                case 'M+': memory = (memory||0) + getMemoryOperand(); break;
+                case 'M-': memory = (memory||0) - getMemoryOperand(); break;
+            }
+            updateMemoryDisplay();
+        }
+
+        buttonsGrid.addEventListener('click', (e)=>{
+            const t = e.target; if (t.tagName !== 'BUTTON') return;
+            const id = t.id; const val = t.textContent.trim();
+            if (t.classList.contains('btn-number') || id === 'decimal') handleNumber(val);
+            else if (t.classList.contains('btn-operator')) handleOperator(val);
+            else if (id === 'equals') handleEquals();
+            else if (id === 'clear_all') handleClearAll();
+            else if (id === 'clear_entry') handleClearEntry();
+        });
+
+        const memIdMap = { mc:'MC', mr:'MR', m_plus:'M+', m_minus:'M-' };
+        memoryButtons.addEventListener('click', (e)=>{
+            const t = e.target; if (t.tagName !== 'BUTTON') return;
+            const op = memIdMap[t.id]; if (!op) return;
+            handleMemory(op);
+            t.classList.add('active'); setTimeout(()=>t.classList.remove('active'),120);
+        });
+
+        document.addEventListener('keydown',(e)=>{
+            const key = e.key;
+            if ((key >= '0' && key <= '9') || key === '.') handleNumber(key);
+            else if (key === '+') handleOperator('+');
+            else if (key === '-') handleOperator('−');
+            else if (key === '*') handleOperator('×');
+            else if (key === '/') { e.preventDefault(); handleOperator('÷'); }
+            else if (key === 'Enter' || key === '=') { e.preventDefault(); handleEquals(); }
+            else if (key === 'Backspace') handleClearEntry();
+            else if (key === 'Escape') handleClearAll();
+        });
+        
+        renderHistory(); updateDisplay();
+    </script>
+</body>
+</html>
